@@ -15,8 +15,17 @@ export const carrosService = {
     },
 
     //Metodo POST: agregar un nuevo carro, retornar la promesa con el objeto creado
-    add: async (marca:string): Promise<Carro> =>{
-        const {data} = await client.post<Carro>('patio', {marca})
+    add: async (carro:Omit<Carro, 'id'>): Promise<Carro> =>{
+        const {data} = await client.post<Carro>('patio', carro)
         return data
+    },
+
+    update: async (id: string, carro: Omit<Carro, 'id'>): Promise<Carro> => {
+        const {data} = await client.put<Carro>(`patio/${id}`, carro)
+        return data
+    },
+
+    remove: async (id: string): Promise<void> => {
+        await client.delete(`patio/${id}`)
     }
 }

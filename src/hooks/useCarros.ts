@@ -4,6 +4,7 @@
 //useQueryClient: para interactuar con la cache(invalidar,refrescar)
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import { carrosService } from '@/api/carros.service'
+import { Carro } from '@/types/carro'
 
 //Definir una constante key que servira como indetificador unico
 //para las queries relacionadas con carros
@@ -28,7 +29,40 @@ export function useCarros(){
 export function useAgregarCarro(){
     const qc = useQueryClient()
     return useMutation({
-        mutationFn: (marcar:string) => carrosService.add(marcar),
+        mutationFn: (carro:Omit<Carro, 'id'>) => carrosService.add(carro),
         onSuccess :() => qc.invalidateQueries({queryKey: KEY}),
+    })
+}
+
+export function useEditarCarro(){
+    const qc = useQueryClient()
+    return useMutation({
+        mutationFn: ({id, carro}: {id: string; carro: Omit<Carro, 'id'>}) =>
+            carrosService.update(id, carro),
+        onSuccess: () => qc.invalidateQueries({queryKey: KEY}),
+    })
+}
+
+export function useEliminarCarro(){
+    const qc = useQueryClient()
+    return useMutation({
+        mutationFn: (id: string) => carrosService.remove(id),
+        onMutate: async (id) => {
+            await qc.cancelQueries({queryKey: KEY})
+            const previousCarros = qc.getQueryData<Carro[]>(KEY)
+            if (previousCarros) {
+                qc.setQueryData<Carro[]>(
+                    KEY,
+                    previousCarros.filter((carro) => carro.id !== id),
+                )
+            }
+            return {previousCarros}
+        },
+        onError: (_error, _id, context) => {
+            if (context?.previousCarros !== undefined) {
+                qc.setQueryData(KEY, context.previousCarros)
+            }
+        },
+        onSettled: () => qc.invalidateQueries({queryKey: KEY}),
     })
 }
